@@ -46,7 +46,12 @@ pip install -r requirements-pip.txt
 pip install -r requirements-conda.txt
 ```     
 ## Dataset Introduction  
-This project aims to validate the feasibility of a lightweight PCB defect detection model based on YOLOv8 using the PKU-Market-PCB (Augmented-Version) and DeepPCB datasets.
+This project aims to validate the feasibility of a lightweight PCB defect detection model based on YOLOv8 using the PKU-Market-PCB (Augmented-Version) and DeepPCB datasets.The raw datasets are all open datasets.  
+* The link to the third-party database for raw data access is as follows:  
+The PKU-Market-PCB: https://github.com/jianzhang96/MSD.git  
+The DeepPCB: https://github.com/tangsanli5201/DeepPCB.git    
+* This study uses an augmented dataset to obtain the address:https://drive.google.com/file/d/1aOHH1VzQZNeie0oiwpgP0fDDnSmNZe6f/view?usp=drive_link
+
 ### PKU-Market-PCB（Augmented-Version）  
 The PKU-Market-PCB dataset was developed by the Intelligent Robotics Laboratory at Peking University and consists of 693 images covering six different defect categories: missing hole, mouse bite, open circuit, short, spur, and spurious copper. Due to the relatively small size of this dataset, we applied various data augmentation techniques, including random cropping, translation, HSV adjustment, brightness variation, and noise injection. These techniques expanded the dataset to 3,660 images, which were divided into training, validation, and test sets in an 8:1:1 ratio.       
 ![PKU-Market-PCB（Augmented-Version）](PCB.png)
@@ -270,9 +275,21 @@ class BboxLoss(nn.Module):
 ### Model Pruning Optimization (LAMP)  
 * Modification: Applied Layer Adaptive Multi-granularity Pruning (LAMP) to remove redundant connections, significantly reducing model size and computation cost.  
 * Lamp Code Modules:    
-```python  
-
-```
+```python    
+# Skip the head network during the pruning process. 
+for k, m in model.named_modules():
+        if isinstance(m, Detect_Efficient):
+            ignored_layers.append(m.cv2)
+            ignored_layers.append(m.cv3)
+            ignored_layers.append(m.dfl)    
+# The detailed pruning code can be found in the file:ultralytics-main/ultralytics/models/yolo/detect/compress.py 
+    
+```    
+### Experimental Performance Improvements
+* 60% reduction in parameters  
+* 51% decrease in computational cost  
+* 60% reduction in model size  
+* 1.7 percentage point increase in detection accuracy (95.0% → 96.7%)
 
 
 ## Train the Model
@@ -323,7 +340,7 @@ head:
   - [[15, 18, 21], 1, Detect_Efficient, [nc]]  # Detect(P3, P4, P5)
 
 ```    
-###  Model Training Script
+###  Model Training 
 * train.py script for training (Modify the YOLOv8 model parameters as needed in the script)  
 ``` python  
 import warnings
@@ -349,8 +366,9 @@ if __name__ == '__main__':
 * Run the training script  
 ```  bash
 python ultralytics-main/train.py
-```   
+```    
 
+###  Model pruning
 * Model Pruning Script (Modify pruning parameters and retraining parameters)    
 ``` python  
 import warnings
